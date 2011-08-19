@@ -1,0 +1,8 @@
+This file will include:
+  
+  -the objectives and methodology of this project
+  -the design principle of the server and the client program,
+  -network packet design, two FSMs for the server and the client,
+  -demonstrating your software in action,
+  -what you have learned from this project and what you can improve.
+

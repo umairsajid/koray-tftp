@@ -1,0 +1,11 @@
+ The protocol was originally designed by Noel Chiappa, and was
+redesigned by him, Bob Baldwin and Dave Clark, with comments from Steve
+Szymanski. The current revision of the document includes modifications
+stemming from discussions with and suggestions from Larry Allen, Noel
+Chiappa, Dave Clark, Geoff Cooper, Mike Greenwald, Liza Martin, David
+Reed, Craig Milo Rogers (of UCS-ISI), Kathy Yellick, and the author.
+The acknowledgement and retransmission scheme was inspired by TCP, and
+the error mechanism was suggested by PARC's EFTP abort message.
+This research was supported by the Advanced Research Projects Agency of
+the Department of Defense and was monitored by the Office of Naval
+Research under contract number N00014-75-C-0661.
