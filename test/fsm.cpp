@@ -4,8 +4,6 @@
     Y Koray Kalmaz 2011
     
 */
-
-# include "fsm.h"
 /*  Client commands:
     mode        transfer-mode [ascii|bin]
     ascii       Shorthand for "mode ascii"
@@ -40,10 +38,15 @@
     ?           help
 */
 
+# include "fsm.h"
+
+#define THREADS 50
 
 /* FSM Default Constructor                                          */
 fsm::fsm(){
     curState = 1;
+    sessionTimeout = 1000;
+    rexmt = 1000;
     // Fill default commands:
     task t;
     t.cmdName = "mode";
@@ -93,24 +96,58 @@ short int fsm::getState(){
     return curState;
     }
 
-int fsm::beginTransfer(vector <string> tkn){
+int tftpClient::beginTransfer(vector <string> tkn){
     if (tkn.size() == 1) {
         cout << "MISSING: What should I " << tkn.at(0) << "?" << endl;
         return 0;
         }
-    cout << "Transfer initialized" << endl;
     for (int i = 1; i < (int) tkn.size(); i++) {
+        // initialize transfer for tkn.at(i):
         cout << tkn.at(0) << "ting " << tkn.at(i) << endl;
+        // start client for single transfer
+        // TODO: Fix this conversation later..
+        char * www = new char [ tkn.at(i).size() + 1 ];
+        copy(tkn.at(i).begin(), tkn.at(i).end(), www);
+        myNet.startClient(remoteAddress, www, (tkn.at(0) == "put"));
     }
     return 0;
     }
 
-void fsm::printStatus(){}
+void fsm::printStatus(){
+    cout << "General timeout:\t" << sessionTimeout/1000 << "s." << endl;
+    cout << "Packet timeout: \t" << rexmt/1000 << "s." << endl;
+    cout << "Connections:\n";
+    myNet.printList();
+    }
+
+void fsm::abort(vector <string> arg){
+    if (arg.size() < 2) {
+        cout << "Missing argument" << endl;
+    } else {
+        int ao [THREADS];
+        int x;
+        myNet.getOps(ao, x);
+        for (unsigned int i = 1; i < arg.size(); i++){
+            // check if op exists:
+            for (unsigned int j = 0; j < (unsigned int) x; j++) {
+                cout << atoi(arg.at(i).c_str()) << " = " << ao[j];
+                cout << " : " << (atoi(arg.at(i).c_str()) == ao[j]);
+                cout << endl;
+                if (atoi(arg.at(i).c_str()) == ao[j]) {
+                    // abort:
+                    myNet.abort(atoi(arg.at(i).c_str()));
+                    cout << "Aborted: " << arg.at(i) << endl;
+                    }
+                }
+            }
+        }
+    }
 
 /* TFTP Client default                                              */
 tftpClient::tftpClient() : fsm(){
     curState = 1;
     tMode = 1;
+    remoteAddress[0] = '\0';
     fillCommands();
     startCLI();
     }
@@ -119,7 +156,7 @@ tftpClient::tftpClient() : fsm(){
 tftpClient::tftpClient(char * rHost) : fsm(){
     curState = 1;
     cout << "Host address given" << endl;
-    remoteAddress = rHost;
+    strncpy(remoteAddress, rHost, 256);
     fillCommands();
     // TODO: check host address
     startCLI();
@@ -150,8 +187,6 @@ short int tftpClient::transferMode(string mode){
     return 1;
     }
 
-void tftpClient::printStatus(){}
-
 void tftpClient::fillCommands(){
     task t;
     t.cmdName = "connect";
@@ -177,7 +212,16 @@ void tftpClient::runCommand(vector<string> tokens){
         transferMode("binary");
     }
     else if (tokens.at(0) == "connect"){
-        remoteAddress = tokens.at(1);
+        char * nl = new char [ tokens.at(1).size() + 1 ];
+        copy(tokens.at(1).begin(), tokens.at(1).end(), nl);
+        char * nlk = myNet.nameLookup(nl);
+
+        if (0 != (int) nlk) {
+            cout << nl << ": " << nlk << endl;
+            strncpy(remoteAddress, nl, 256);
+        } else {
+            cout << "Address not found.\n";
+            }
     } 
     else if (tokens.at(0) == "get"){
         beginTransfer(tokens);
@@ -188,10 +232,14 @@ void tftpClient::runCommand(vector<string> tokens){
         cout << "User quit." << endl;
         curState = 90;
     } 
+    else if (tokens.at(0) == "abort"){
+        abort(tokens);
+    }
     else if (tokens.at(0) == "rexmt"){
         rexmt = atoi(tokens.at(1).c_str());
-    } 
+    }
     else if (tokens.at(0) == "status"){
+        cout << "Remote Address: \t" << remoteAddress << endl;
         printStatus();
     } 
     else if (tokens.at(0) == "timeout"){
