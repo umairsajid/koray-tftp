@@ -64,13 +64,13 @@ void * doJob(void * k){
     cout << " host: " << a->rhost << " file " << a->rfile << endl;
     
     pthread_mutex_lock(&mutexStats);
-    a->state = 1;
-    pthread_mutex_unlock(&mutexStats);
     
+    a->state = 1;
     a->target = 8000000;
     
-    int j = 0;
+    pthread_mutex_unlock(&mutexStats);
     
+    int j = 0;
     for (int i = 0; i < a->target; i++) {
         j++;
         
@@ -123,9 +123,9 @@ short int anne::startNew(char * host, char * file){
     int rc;
     rc = pthread_create(&(tStats[slot].trd), &attr, doJob, (void *)counter); 
     if (rc){
-            cout << "ERROR; pthread_create(): " << rc << endl;
-            exit(-1);
-            }
+        cout << "ERROR; pthread_create(): " << rc << endl;
+        exit(-1);
+        }
     
     while (tStats[slot].state != 1){
         pthread_yield();
