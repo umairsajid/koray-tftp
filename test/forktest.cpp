@@ -83,7 +83,6 @@ int main (int argc, char *argv[]){
             }
         }
     
-    
     /* Free attribute and wait for the other threads */
     pthread_attr_destroy(&attr);
     
