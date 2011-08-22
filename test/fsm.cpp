@@ -114,8 +114,8 @@ int tftpClient::beginTransfer(vector <string> tkn){
     }
 
 void fsm::printStatus(){
-    cout << "General timeout:\t" << sessionTimeout/1000 << "s." << endl;
-    cout << "Packet timeout: \t" << rexmt/1000 << "s." << endl;
+    cout << "General timeout:\t" << sessionTimeout << " ms." << endl;
+    cout << "Packet timeout: \t" << rexmt << " ms." << endl;
     cout << "Connections:\n";
     myNet.printList();
     }
@@ -215,13 +215,12 @@ void tftpClient::runCommand(vector<string> tokens){
         char * nl = new char [ tokens.at(1).size() + 1 ];
         copy(tokens.at(1).begin(), tokens.at(1).end(), nl);
         char * nlk = myNet.nameLookup(nl);
-
         if (0 != (int) nlk) {
             cout << nl << ": " << nlk << endl;
-            strncpy(remoteAddress, nl, 256);
         } else {
-            cout << "Address not found.\n";
+            cout << "WARNING: Address not found.\n";
             }
+        strncpy(remoteAddress, nl, 256);
     } 
     else if (tokens.at(0) == "get"){
         beginTransfer(tokens);
@@ -236,14 +235,22 @@ void tftpClient::runCommand(vector<string> tokens){
         abort(tokens);
     }
     else if (tokens.at(0) == "rexmt"){
-        rexmt = atoi(tokens.at(1).c_str());
+        if (200 > (int) tokens.at(1).c_str() ){
+            cout << "Value can not be smaller than 200.";
+        } else {
+            rexmt = atoi(tokens.at(1).c_str());
+            }
     }
     else if (tokens.at(0) == "status"){
         cout << "Remote Address: \t" << remoteAddress << endl;
         printStatus();
     } 
     else if (tokens.at(0) == "timeout"){
-        sessionTimeout = atoi(tokens.at(1).c_str());
+        if (200 > (int) tokens.at(1).c_str() ){
+            cout << "Value can not be smaller than 200.";
+        } else {
+            sessionTimeout = atoi(tokens.at(1).c_str());
+            }
     } 
     else if (tokens.at(0) == "verbose"){
         verboseMode = !verboseMode;
