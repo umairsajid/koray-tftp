@@ -171,7 +171,7 @@ int tftpClient::startCLI(){
         cout << cursorText;
         cin.getline(cmd, 256);
         if (cin.eof()) {
-            cout << "\nCtrl+D Pressed" << endl;
+            // cout << "\nCtrl+D Pressed" << endl;
             break;
             }
         checkCommand(cmd);
@@ -200,6 +200,7 @@ void tftpClient::fillCommands(){
     commands.push_back(t);
     }
 
+// Run related functions or set values
 void tftpClient::runCommand(vector<string> tokens){
     if (tokens.at(0) == "mode"){
         cout << "mode: " << endl;

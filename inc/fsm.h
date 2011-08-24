@@ -4,6 +4,8 @@
     Y Koray Kalmaz 2011
     
 */
+#ifndef FSM_H
+#define FSM_H
 
 # include <algorithm>
 # include <iostream>
@@ -72,3 +74,5 @@ class tftpClient : fsm {
         void fillCommands();                    // fill client commands
         int beginTransfer(vector <string> tkn);
     };
+
+#endif

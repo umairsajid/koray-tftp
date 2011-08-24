@@ -187,30 +187,3 @@ ostream& operator<<(ostream& output, fileOps &f){
     output << x;
     return output;
     }
-
-char * fileOps::nextSegment(){
-    if (fserror == 100) {
-        return 0;
-        }
-    int startOffset = curSeg * 512;
-    char * x;
-    if (endOffset < startOffset + 512) {
-        // EOF
-        x = new char [endOffset - startOffset + 1];
-
-        memcpy(x, memBuffer + startOffset, endOffset - startOffset);
-
-        x[endOffset - startOffset] = '\0';
-        fserror = 100;
-    } else {
-        // Normal
-        x = new char [513];
-        memcpy(x, memBuffer + startOffset, 512);
-        curSeg++;
-        if (curSeg == bufferSize / 512) {
-            read();
-            }
-        x[512] = '\0';
-        }
-    return x;
-    }

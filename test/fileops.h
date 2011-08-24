@@ -19,7 +19,6 @@ class fileOps {
         friend ostream& operator<<(ostream& output, fileOps &f);
         friend istream& operator>>(istream& input, fileOps &f);
         int close();
-        char * nextSegment();
         short int fserror;        // error code if any 0-100
     protected:
         int curPos;         // current address in file

@@ -4,8 +4,8 @@
     Y Koray Kalmaz 2011
     
 */
-# include "fsm.h"
 # include <iostream>
+# include "fsm.h"
 
 /* What does this do:
     interpret command line arguments:
