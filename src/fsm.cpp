@@ -1,46 +1,23 @@
 /*
-    TFTP client UI
+    TFTP UI
     
     Y Koray Kalmaz 2011
     
 */
 /*  Client commands:
-    mode        transfer-mode [ascii|bin]
-    ascii       Shorthand for "mode ascii"
-    binary      Shorthand for "mode binary"
     connect     host-name [port]
                 connect command remembers what host is to be used.
     get         filename
-    get         remotename localname
-    get         file1 file2 ... fileN
-                Source can be a filename or hosts:filename
-                hostname becomes the default for future transfers.
     put         file
-    put         localfile remotefile
-    put         file1 file2 ... fileN remote-directory
-    quit
-    rexmt       retransmission-timeout
-    status      Show current status.
-    timeout     total-transmission-timeout
-    verbose     Toggle verbose mode.
-    ?           help
 */
 /*  Server commands:
-    mode        transfer-mode [ascii|bin]
-    ascii       Shorthand for "mode ascii"
-    binary      Shorthand for "mode binary"
-    stop        stop transfer for thread x
-    quit
-    rexmt       retransmission-timeout
-    status      Show current status.
-    timeout     total-transmission-timeout
-    verbose     Toggle verbose mode.
-    ?           help
+    abort        stop transfer for thread x
 */
 
 # include "fsm.h"
 
 #define THREADS 50
+#define DEFAULTPORT 69
 
 /* FSM Default Constructor                                          */
 fsm::fsm(){
@@ -152,8 +129,24 @@ tftpClient::tftpClient() : fsm(){
     startCLI();
     }
 
+// listen port 69
+tftpServer::tftpServer() : fsm(){
+    port = DEFAULTPORT;
+    fillCommands();
+    startCLI();
+    }
+
+// listen port 69
+tftpServer::tftpServer(int listenPort) : fsm(){
+    cout << "Local Port given" << endl;
+    port = listenPort;
+    fillCommands();
+    startCLI();
+    }
+
 /* TFTP Client with hostname                                        */
 tftpClient::tftpClient(char * rHost) : fsm(){
+    cout << "Host address given" << endl;
     curState = 1;
     cout << "Host address given" << endl;
     strncpy(remoteAddress, rHost, 256);
@@ -162,6 +155,26 @@ tftpClient::tftpClient(char * rHost) : fsm(){
     startCLI();
     }
 
+// Start server command line:
+int tftpServer::startCLI(){
+    string cursorText = "tftpd> ";
+    char cmd [256];
+    // fire up server thread:
+    mysrv.startServer(port);
+    
+    while (getState() != 90) {
+        cout << cursorText;
+        cin.getline(cmd, 256);
+        if (cin.eof()) {
+            // cout << "\nCtrl+D Pressed" << endl;
+            break;
+            }
+        checkCommand(cmd);
+        }
+    return 0;
+    }
+
+// Not in fsm as it calls custom checkCommand()
 int tftpClient::startCLI(){
     string cursorText = "tftp> ";
     // given command:
@@ -187,6 +200,16 @@ short int tftpClient::transferMode(string mode){
     return 1;
     }
 
+/*  Server commands:
+    abort        stop transfer for thread x
+*/
+void tftpServer::fillCommands(){
+    task t;
+    t.cmdName = "abort";
+    t.helpText = "Abort transfer for job #ID";
+    commands.push_back(t);
+    }
+
 void tftpClient::fillCommands(){
     task t;
     t.cmdName = "connect";
@@ -198,6 +221,59 @@ void tftpClient::fillCommands(){
     t.cmdName = "put";
     t.helpText = "Send file";
     commands.push_back(t);
+    }
+
+void tftpServer::runCommand(vector<string> tokens){
+    if (tokens.at(0) == "mode"){
+        cout << "mode: " << endl;
+    } 
+    else if (tokens.at(0) == "ascii"){
+        cout << "mode: " << endl;
+    } 
+    else if (tokens.at(0) == "binary"){
+        cout << "mode: " << endl;
+    } 
+    else if (tokens.at(0) == "quit"){
+        cout << "User quit." << endl;
+        curState = 90;
+    } 
+    else if (tokens.at(0) == "abort"){
+        abort(tokens);
+    }
+    else if (tokens.at(0) == "rexmt"){
+        if (200 > (int) tokens.at(1).c_str() ){
+            cout << "Value can not be smaller than 200.";
+        } else {
+            rexmt = atoi(tokens.at(1).c_str());
+            }
+    } else if (tokens.at(0) == "status"){
+        printStatus();
+    } 
+    else if (tokens.at(0) == "timeout"){
+        if (200 > (int) tokens.at(1).c_str() ){
+            cout << "Value can not be smaller than 200.";
+        } else {
+            sessionTimeout = atoi(tokens.at(1).c_str());
+            }
+    } 
+    else if (tokens.at(0) == "verbose"){
+        verboseMode = !verboseMode;
+        if (verboseMode) {
+            cout << "Verbose mode ON" << endl;
+        } else {
+            cout << "Verbose mode OFF" << endl;
+        }
+    }
+    else if ((tokens.at(0) == "?") || (tokens.at(0) == "help")){
+        for (unsigned int i = 0; i < commands.size(); i++) {
+            task t = commands.at(i);
+            cout << "\t" << t.cmdName << "\t\t" << t.helpText << endl;
+        }
+    } 
+    else {
+        cout << "Unknown command: " << tokens.at(0) << endl;
+        }
+    
     }
 
 // Run related functions or set values
@@ -260,7 +336,7 @@ void tftpClient::runCommand(vector<string> tokens){
         } else {
             cout << "Verbose mode OFF" << endl;
         }
-    } 
+    }
     else if ((tokens.at(0) == "?") || (tokens.at(0) == "help")){
         for (unsigned int i = 0; i < commands.size(); i++) {
             task t = commands.at(i);
@@ -270,6 +346,20 @@ void tftpClient::runCommand(vector<string> tokens){
     else {
         cout << "Unknown command: " << tokens.at(0) << endl;
         }
+    }
+
+
+void tftpServer::checkCommand(char cmdLine [256]){
+    if (cmdLine[0] == 0x00) {
+        // cout << "EMPTY" << endl;
+        return;
+    }
+    istringstream iss(cmdLine, istringstream::in);
+    vector<string> tokens;
+    copy(istream_iterator<string>(iss),
+            istream_iterator<string>(),
+            back_inserter<vector<string> >(tokens));
+    runCommand(tokens);
     }
 
 /* Checks command                                                   */

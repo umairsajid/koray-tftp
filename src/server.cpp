@@ -1,5 +1,5 @@
 /*
-    TFTP client UI
+    TFTP server UI
     
     Y Koray Kalmaz 2011
     
@@ -19,5 +19,13 @@ int main(int argc, char *argv[]){
     /* Arguments:
         port
     */
-    
+    if (argc == 1) {
+        tftpServer s;           // If no arguments:     FSM cli
+    } else if (argc == 2) {
+        // TODO: Check integer
+        tftpServer s( (int) argv[1]);    // Port given:          FSM w/port
+    } else {
+        cout << "Too many arguments" << endl;
+        }
+    return 0;
     }
