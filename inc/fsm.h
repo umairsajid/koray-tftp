@@ -1,5 +1,5 @@
 /*
-    TFTP client UI
+    TFTP UI
     
     Y Koray Kalmaz 2011
     
@@ -44,7 +44,8 @@ class fsm {
 
 class tftpServer : fsm {
     public:
-        tftpServer(int listenPort);
+        tftpServer();                   // listen port 69
+        tftpServer(int listenPort);     // start with custom port
     private:
         struct transfer {
             string clientAddress;
@@ -55,7 +56,10 @@ class tftpServer : fsm {
         vector <transfer> clients;
         int port;                               // listening port
         void runCommand(vector<string> tokens); // server interpreter
+        int startCLI();                         // command cursor
         void fillCommands();                    // fill server commands
+        void checkCommand(char cmdLine [256]);  // written command
+        rxtx mysrv;                             // server object
     };
 
 class tftpClient : fsm {
