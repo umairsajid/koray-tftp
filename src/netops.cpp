@@ -114,7 +114,7 @@ void killSocket( short int * st ) {
 
 // returns true if receive timeouts (BUGGY!!!)
 bool recvTimeout(int sock, sockaddr_in * sockfrom, void *data, 
-                                            size_t *length, int timeout) {
+                                        size_t *length, int timeout) {
     fd_set socks;                   // Socket file descriptor
     timeval t;                      // for timeout
     
@@ -152,14 +152,47 @@ bool recvTimeout(int sock, sockaddr_in * sockfrom, void *data,
     }
 
 // reads from buf, writes to packetNo and data
-void readDataPacket(char * buf, short int * packetNo, char * data){
-    //*packetNo = *(short *) (buf + 3);
-    *packetNo = (short int) *(buf + 3);
-    memcpy(data, buf + 4, 512);
+// DOESN'T WORK FOR 128
+void readDataPacket(char * buf, int * packetNo, char * data, 
+                                                short int * recvSize){
+    // this only gets one byte:
+    *packetNo = (unsigned short int) *(buf + 3);
+    
+    // reverse byte order to new char array:
+    char * ts = new char [4];
+    for (int i = 0; i < 4; i++){
+        * (ts + i) = * (buf + ( 3 - i));
+        }
+    
+    // static cast to void, then ushort (cannot cast from char: weird?)
+    //unsigned short * a = static_cast<unsigned short*>(static_cast<void*>(ts + 2));
+    unsigned short * b = static_cast<unsigned short*>(static_cast<void*>(ts));
+    
+    // this doesn't work either (single byte problem)
+    struct p {
+        u_int16_t oc;
+        u_int16_t pn;
+        char dt [512];
+        };
+    
+    p * np = new p;
+    np = (p *) buf;
+    
+    np->pn = ((np->pn >> 8) | (np->pn << 8));
+    // print everything for test:
+    //cout << *packetNo << " oc: " << np->oc << " pn: " << np->pn <<  " kk:" << *a << " : " << *b << endl;
+    // nope.. it doesn't work
+    *packetNo = *b;
+    // this is rubbish too:
+//~     uint16_t ttmp = *(buf + 3);
+//~     *packetNo = (short int) ttmp;
+    
+    // finally, copy all data:
+    memcpy(data, buf + 4, *recvSize);
     }
 
 // TODO: Use memcpy instead
-void makeACK(char * buf, short int * pNo){
+void makeACK(char * buf, int * pNo){
     *(buf) = 0x00;
     *(buf + 1) = 0x04;
     uint16_t tmpno = htons(* pNo);
@@ -194,83 +227,47 @@ static void * rx(void * o){
         cout << "FATAL; bind() failed!\n";
         exit(-1);
         }
-    cout << "Socket Descriptor: " << op->s << endl;
     getsockname(op->s,(struct sockaddr *)&op->lsock,&slen);
     // set op->state to initialized
     op->state = op->state | STATE_INITIALIZED;
     char * sndbuf;
     int sndlen = 0;
     if ( (op->state ^ STATE_SERVER) >= op->state) {
-        // packet is RRQ when client (00 01 Filename 00 Mode 00)
+        // if client: packet is RRQ (00 01 Filename 00 Mode 00)
         sndlen = 8 + strlen(op->rfile);
         sndbuf = new char [sndlen];
         sndbuf[1] = 0x01;
         strncpy(sndbuf + 2, op->rfile, strlen(op->rfile));
-        cout << "RRQ created\n";
     } else {
-        // packet is ACK with #0 (00 04 00 00)
+        // if server: packet is ACK with #0 (00 04 00 00)
         sndbuf = new char [4];
         sndbuf[1] = 0x04;
         sndlen = 4;
-        cout << "ACK created\n";
         }
-    
     // set op->state to Connection
     op->state = op->state | STATE_CONNECTED;
     // initialize write-behind object
-    clock_t za;           // session start time
     op->packetNo = 0;
+    int currentPacketno = 0;
     while (op->abort == false) {
         if (op->progress < 512) {
             op->state = op->state | STATE_TRANSFER;
             }
-        // listen until general timeout
-        za  = clock();
-//~         bool lastTimeout = true;
-        short int currentPacketno = 0;
         short int recvBytes = 0;
-        cout << "Session Timeout: " << srvset.gTimeout << endl;
-//~         while (clock() < za + srvset.gTimeout * 1000){
-            // send ACK or RRQ
-            cout << "Sending packet\n";
-            for (int k = 0; k < 4; k++) {
-                cout << (int) *(sndbuf + k);
-                }
-            cout << endl;
-            if (sendto(op->s, sndbuf, sndlen, 0, 
-                            (struct sockaddr *) &op->rsock, slen)==-1){
-                cout << "ERROR; sendto() failed!\n";
-                exit(-1);
-                }
-            
-            cout << "Sent from: " << ntohs(op->lsock.sin_port) << endl;
-            // listen until rexmt timeout
-            memset(&op->buf, 0, DATA_SIZE_MAX);     // flush buffer
-            
-//~             lastTimeout = recvTimeout(op->s, &op->rsock, 
-//~                 &op->buf, (size_t *) DATA_SIZE_MAX, srvset.pTimeout);
-            if ( (op->state ^ STATE_FINISHED) < op->state) {
-                cout << "Already finished\n";
-            } else {
-                recvBytes = recvfrom(op->s, op->buf, DATA_SIZE_MAX, 0, 
-                                (struct sockaddr *) &op->rsock, &slen);
-                cout << "I got some data: " << recvBytes << endl;
-                }
-//~             lastTimeout = false;
-//~             
-//~             if (lastTimeout == false) {
-//~                 break;
-//~                 }
-//~             }
-        za  = clock();           // reset session timeout
-        // Check session timeout & no transfer
-//~         if (lastTimeout == true) {
-//~             killSocket(&op->state);
-//~             pthread_exit((void*) o);
-//~             }
+        // send ACK or RRQ
+        if (sendto(op->s, sndbuf, sndlen, 0, 
+                        (struct sockaddr *) &op->rsock, slen)==-1){
+            cout << "ERROR; sendto() failed!\n";
+            exit(-1);
+            }
+        // listen
+        memset(&op->buf, 0, DATA_SIZE_MAX);     // flush buffer
+        if ( (op->state ^ STATE_FINISHED) >= op->state) {
+            recvBytes = recvfrom(op->s, op->buf, DATA_SIZE_MAX, 0, 
+                            (struct sockaddr *) &op->rsock, &slen);
+            }
         // Check rhost, rport
         char * kxtmp = inet_ntoa(srvset.rsock.sin_addr);
-        cout << "Checking host:\n";
         if (strcmp((char *) op->rhost, kxtmp) != 0) {
             cout << "WARNING; Got data from wrong host. Ignoring...\n";
             cout << "...Expected to get from: " << op->rhost << endl;
@@ -279,42 +276,38 @@ static void * rx(void * o){
             continue; // try listening again
             }
         // This was last ACK?
-        cout << "State: " << op->state << endl;
         if ( (op->state ^ STATE_FINISHED) < op->state) {
-            cout << "That was the last one:\n";
             break;
             }
-        cout << "Checking packet: " << (short int) *(op->buf + 3) << endl;
-        
         // check #packet
         memset(&op->lastSent, 0, 512);     // flush buffer
-        op->lastSent[512] = '\0';
-        
         readDataPacket((char *) op->buf, &currentPacketno, 
-                                                (char *) op->lastSent);
-        cout << "Expected packet: " << op->packetNo + 1 << endl;
-        cout << "Received packet: " << currentPacketno << endl;
+                                (char *) op->lastSent, &recvBytes - 4);
         if (currentPacketno != op->packetNo + 1) {
             continue;
             }
-        cout << "My State: " << op->state << endl;
         // if after 1 packet: set op->state to Transfer
         if (op->packetNo == 0) {
             op->state = op->state | STATE_TRANSFER;
             }
+        if (op->packetNo == 65534) {
+            cout << "RFC1350 size limit\n";
+            op->state = op->state | STATE_ERROR;
+            break;
+            }
         op->packetNo++;
+        op->progress = op->progress + (recvBytes - 4);
         // ACK
         sndbuf = new char [4];
         makeACK(sndbuf, &op->packetNo);
-        cout << "ACK is ready for: " << op->packetNo << endl;
-        // write-behind
-        cout << "+++++Got DATA: " << strlen(op->lastSent) << endl;
+        // write-behind HERE:
+        
         // check EOF & listen or set op->state to Complete & exit
-        if (strlen(op->lastSent) < 512) {
-            cout << "----Last DATA Size: " << strlen(op->lastSent) << endl;
+        if (recvBytes < 516) {
             op->state = op->state | STATE_FINISHED;
             }
         }
+    cout << "Exiting: " << op->id << endl;
     pthread_exit((void*) o);
     }
 
