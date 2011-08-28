@@ -7,38 +7,20 @@ using namespace std;
 
 int main(){
     
-    char *kk = new char [4];
+    char * q = new char [2];
     
-    unsigned short int * bir = new unsigned short int;
-    unsigned short int * cok = new unsigned short int;
+    *q = 57;
+    *(q+1) = 5;
     
-    uint16_t * ters = new uint16_t;
+    // type cast:   gets first byte only
+    u_int16_t z = (u_int16_t) *q;
     
-    *bir = 1;
-    *cok = 128;
+    // returns 57
+    cout << z << endl;
     
-    *ters = htons((uint16_t) * cok) ;
-    
-    cout << "bir: " << * bir << ' ' << * (bir + 1) << endl;
-    cout << "cok: " << * cok << ' ' << * (cok + 1) << endl;
-    cout << "ters: " << * ters << ' ' << * (ters + 1) << endl;
-    
-    cout << "before: ";
-    for (int i = 0; i < 4; i++) {
-        cout << (unsigned int) * (kk + i) << ' ';
-        }
-    cout << endl;
-    
-    
-    memcpy(kk+2, ters, 2);
-    memcpy(kk, cok, 2);
-    
-    
-    cout << "after: ";
-    for (int i = 0; i < 4; i++) {
-        cout << (unsigned int) * (kk + i) << ' ';
-        }
-    cout << endl;
+    // copy memory block:   gets correct value: 1337
+    memcpy(&z, q, 2);
+    cout << z << endl;
     
     return 0;
     }

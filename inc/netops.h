@@ -14,10 +14,18 @@
 # include <netdb.h>             // hostent struct, gethostbyname()
 # include <ctime>               // for timeval in recvTimeout()
 
+#include <cstdio>               // tmp for printf
 
-#define THREADS 50              // max thread count
-#define REQUEST_SIZE_MAX 267    // maximum request packet size
-#define DATA_SIZE_MAX 516       // max data packet size
+# define THREADS 50              // max thread count
+# define REQUEST_SIZE_MAX 267    // maximum request packet size
+# define DATA_SIZE_MAX 516       // max data packet size
+
+/*  OpCodes:                            */
+# define	OPCODE_RRQ	    01      /* read request */
+# define	OPCODE_WRQ	    02      /* write request */
+# define	OPCODE_DATA	    03      /* data packet */
+# define	OPCODE_ACK	    04      /* acknowledgement */
+# define	OPCODE_ERROR	05      /* error code */
 
 # define STATE_SERVER       1
 # define STATE_RECEIVE      2
@@ -26,6 +34,16 @@
 # define STATE_TRANSFER     16
 # define STATE_FINISHED     32
 # define STATE_ERROR        128
+
+struct	tftphdr {
+    u_int16_t th_opcode;        // opcode
+    union {
+        u_int16_t tu_block;     // data block no
+        u_int16_t tu_code;      // error code
+        char tu_stuff[1];       // filename
+    } th_u;
+    char th_data[1];            // string for error or data
+    };
 
 using namespace std;
 
@@ -52,8 +70,8 @@ struct operation {
     char rhost [256];           // remote host address
     char rfile [256];           // filename to transmit / receive
     bool abort;                 // abort signal received
-    char lastSent [513];        // last sent data (in case of resend)
-    short int packetNo;               // last sent packet #
+    char lastSent [512];        // last sent data (in case of resend)
+    int packetNo;               // last sent packet #
     bool netascii;              // convert ascii characters
     };
 
