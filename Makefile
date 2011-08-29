@@ -33,6 +33,8 @@ client : fileops.o netops.o fsm.o $(SRC)client.cpp $(BIN)
 server : fileops.o netops.o fsm.o $(SRC)server.cpp $(BIN)
 			$(CC) $(CFLAGS) -I $(INC) -lpthread -o $(BIN)$@ $(SRC)server.cpp $(OBJ)/fsm.o $(OBJ)/netops.o
 
+all : server client
+
 clean:
 	$(RM) $(OBJ)/*.o
 	$(RM) $(BIN)/*
