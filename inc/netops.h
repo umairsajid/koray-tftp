@@ -13,19 +13,21 @@
 # include <arpa/inet.h>         // inet_ntoa() to format IP address
 # include <netdb.h>             // hostent struct, gethostbyname()
 # include <ctime>               // for timeval in recvTimeout()
+# include <cctype>              // for character case conversion
 
-#include <cstdio>               // tmp for printf
+# include <fstream>             // temporary for file operations
 
 # define THREADS 50              // max thread count
 # define REQUEST_SIZE_MAX 267    // maximum request packet size
 # define DATA_SIZE_MAX 516       // max data packet size
 
+
 /*  OpCodes:                            */
-# define	OPCODE_RRQ	    01      /* read request */
-# define	OPCODE_WRQ	    02      /* write request */
-# define	OPCODE_DATA	    03      /* data packet */
-# define	OPCODE_ACK	    04      /* acknowledgement */
-# define	OPCODE_ERROR	05      /* error code */
+# define	OPCODE_RRQ	    01      // read request
+# define	OPCODE_WRQ	    02      // write request
+# define	OPCODE_DATA	    03      // data packet
+# define	OPCODE_ACK	    04      // acknowledgement
+# define	OPCODE_ERROR	05      // error code
 
 # define STATE_SERVER       1
 # define STATE_RECEIVE      2
@@ -79,7 +81,7 @@ struct serverSettings {
     pthread_t trd;              // thread of server
     int port;                   // listening port
     sockaddr_in lsock;          // local socket address
-    sockaddr_in rsock;          // remote socket address (temporary)
+    sockaddr_in * rsock;          // remote socket address (temporary)
     int s;                      // socket descriptor
     int rbl;                    // request buffer lenght
     
@@ -102,4 +104,5 @@ class rxtx {
         pthread_attr_t attr;                // default thread attributes
         void * status;                      // for join threads
         operation * op(short int opID);     // return pointer to #opID
+        char * stateHr(short int * z);             // translate status no
     };

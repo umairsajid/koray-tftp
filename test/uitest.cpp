@@ -6,21 +6,33 @@ using namespace std;
 
 
 int main(){
+    int i;
+    char * a = new char [6];
+    short int q = 5;
+    short int w = 6;
     
-    char * q = new char [2];
+    memcpy(a, &q, 2);
+    memcpy(a + 2, &w, 2);
     
-    *q = 57;
-    *(q+1) = 5;
+    cout << "normal: ";
+    for (i = 0; i < 4; i++) {
+        cout << hex << showbase << (int) * (a + i) << " ";
+    }
+    cout << endl;
     
-    // type cast:   gets first byte only
-    u_int16_t z = (u_int16_t) *q;
+    uint16_t qa = htons(q);
+    uint16_t wa = htons(w);
     
-    // returns 57
-    cout << z << endl;
+    memcpy(a, &qa, 2);
+    memcpy(a + 2, &wa, 2);
     
-    // copy memory block:   gets correct value: 1337
-    memcpy(&z, q, 2);
-    cout << z << endl;
+    cout << "ntohs: ";
+    for (i = 0; i < 4; i++) {
+        cout << hex << showbase <<(int) * (a + i) << " ";
+    }
+    cout << endl;
+    
+    cout << hex << noshowbase << 96 << endl;
     
     return 0;
     }

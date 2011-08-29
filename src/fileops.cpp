@@ -96,7 +96,6 @@ int fileOps::read(){
     increase curPos by 1
     reset memBuffer and curSeg.                                 */
 int fileOps::write(){
-    cout << "    Writing to " << filename << endl;
     // Seek to end:
     os.seekp (0, ios::end);
     // Check if write size < 4Kib:
@@ -121,9 +120,9 @@ int fileOps::write(){
     increase curSeg by 1
     if curSeg = maxSegment then set endOffset & write()         */
 istream& operator>>(istream& input, fileOps &f){
-    cout << "  operator >>" << endl;
     char x [512];
     input.seekg( 0, ios::beg );
+    
     input.read(x, 512);
     short int lastbytes = input.gcount();
     cout << "    lastbytes: " << lastbytes << endl;
@@ -139,7 +138,6 @@ istream& operator>>(istream& input, fileOps &f){
         cout << "  Calling diskwrite" << endl;
         f.write();
         }
-    cout << "  buffer has written" << endl;
     return input;
     }
 
@@ -148,7 +146,6 @@ istream& operator>>(istream& input, fileOps &f){
     increase curSeg by 1
     if curSeg = maxSegment then read()                          */
 ostream& operator<<(ostream& output, fileOps &f){
-    cout << "  operator <<" << endl;
     if (f.fserror == 100) {
         cout << "  NULL" << endl;
         return output;
@@ -165,7 +162,6 @@ ostream& operator<<(ostream& output, fileOps &f){
         memcpy(x, f.memBuffer + startOffset, f.endOffset - startOffset);
 
         x[f.endOffset - startOffset] = '\0';
-        cout << "Last piece-" << x << "-" << endl;
         f.fserror = 100;
     } else {
         // Normal
@@ -174,7 +170,6 @@ ostream& operator<<(ostream& output, fileOps &f){
         cout << " as segment: " << f.curSeg << endl;
         x = new char [513];
         memcpy(x, f.memBuffer + startOffset, 512);
-        cout << "    Memcpy complete" << endl;
         f.curSeg++;
         if (f.curSeg == f.bufferSize / 512) {
             cout << "    Buffer needs refresh" << endl;
@@ -183,7 +178,6 @@ ostream& operator<<(ostream& output, fileOps &f){
         x[512] = 0x00;
         }
     // output.clear();
-    cout << "  operator << OUT" << endl;
     output << x;
     return output;
     }
